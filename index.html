@@ -2839,7 +2839,104 @@ function setVolume(type, val) {
         }
         .matrix-box { height: 200px; }
     }
+    /* --- GIAO DIỆN AI CHAT (DÁN VÀO PHẦN STYLE) --- */
+.ai-widget {
+    position: fixed;
+    bottom: 100px; left: 20px; /* Vị trí mặc định */
+    z-index: 9999;
+    font-family: 'Inter', sans-serif;
+}
+
+.ai-icon-trigger {
+    width: 60px; height: 60px;
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 28px;
+    box-shadow: 0 10px 25px rgba(108, 92, 231, 0.5);
+    cursor: move; /* Con trỏ di chuyển */
+    border: 2px solid white;
+    transition: transform 0.2s;
+    user-select: none;
+    animation: pulse 3s infinite;
+}
+@keyframes pulse { 0% {box-shadow: 0 0 0 0 rgba(108, 92, 231, 0.4);} 70% {box-shadow: 0 0 0 15px rgba(108, 92, 231, 0);} 100% {box-shadow: 0 0 0 0 rgba(108, 92, 231, 0);} }
+
+.ai-icon-trigger:hover { transform: scale(1.1); }
+.ai-icon-trigger:active { transform: scale(0.95); }
+
+.ai-chat-window {
+    position: absolute; bottom: 80px; left: 0;
+    width: 320px; height: 450px;
+    background: rgba(30, 30, 46, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.1);
+    display: none; /* Mặc định ẩn */
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    animation: popUp 0.3s ease;
+}
+@keyframes popUp { from { opacity:0; transform:scale(0.8) translateY(20px); } to { opacity:1; transform:scale(1) translateY(0); } }
+
+.ai-header {
+    padding: 15px; background: rgba(255,255,255,0.05);
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    color: white; font-weight: bold; cursor: move;
+}
+
+.ai-body {
+    flex: 1; padding: 15px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 10px;
+}
+.ai-body::-webkit-scrollbar { width: 4px; }
+.ai-body::-webkit-scrollbar-thumb { background: #6c5ce7; border-radius: 4px; }
+
+.msg { max-width: 80%; padding: 10px 14px; border-radius: 14px; font-size: 13px; line-height: 1.5; word-wrap: break-word; }
+.msg.bot { align-self: flex-start; background: rgba(255,255,255,0.1); color: #dfe6e9; border-bottom-left-radius: 2px; }
+.msg.user { align-self: flex-end; background: #6c5ce7; color: white; border-bottom-right-radius: 2px; }
+
+.ai-input-area {
+    padding: 15px; display: flex; gap: 10px; border-top: 1px solid rgba(255,255,255,0.1);
+}
+.ai-input {
+    flex: 1; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white;
+    padding: 10px 15px; border-radius: 20px; outline: none; font-size: 13px;
+}
+.ai-send-btn {
+    width: 40px; height: 40px; border-radius: 50%; border: none;
+    background: #6c5ce7; color: white; cursor: pointer; transition: 0.2s;
+}
+.ai-send-btn:hover { background: #a29bfe; }
+.typing-indicator { font-size: 11px; color: #a29bfe; margin-left: 15px; margin-bottom: 5px; display: none; font-style: italic; }
 </style>
+<div class="ai-widget" id="draggable-ai">
+    <div class="ai-chat-window" id="ai-window">
+        <div class="ai-header">
+            <span onclick="renameAI()" style="cursor:pointer; display:flex; align-items:center; gap:8px">
+                <i class="fas fa-robot"></i> <span id="ai-name-display">JARVIS</span> <i class="fas fa-pen" style="font-size:10px; opacity:0.5"></i>
+            </span>
+            <i class="fas fa-times" onclick="toggleAI()" style="cursor:pointer; opacity:0.7"></i>
+        </div>
+        
+        <div class="ai-body" id="ai-messages">
+            <div class="msg bot">Xin chào! Tôi đã trở lại. Bạn cần giúp gì không?</div>
+        </div>
+        
+        <div class="typing-indicator" id="ai-typing">Đang suy nghĩ...</div>
+        
+        <div class="ai-input-area">
+            <input type="text" class="ai-input" id="ai-input" placeholder="Nhập tin nhắn..." onkeypress="handleAIEnter(event)">
+            <button class="ai-send-btn" onclick="sendAIMessage()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <div class="ai-icon-trigger" onclick="toggleAI()">
+        <i class="fas fa-brain"></i>
+    </div>
+</div>
 </body>
 <script>
     /* =========================================
@@ -2958,4 +3055,211 @@ function setVolume(type, val) {
     });
 
 </script>
+<script type="module">
+    // 1. NHẬP KHẨU CÔNG CỤ TỪ GOOGLE (Dùng link CDN để chạy trên web thường)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, serverTimestamp } 
+    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // 2. CẤU HÌNH KẾT NỐI (Thông tin từ ảnh của bạn)
+    const firebaseConfig = {
+        apiKey: "AIzaSyBEl0yxa_w_Wh4PJXfc1ZIIvJT-LhvlZfU",
+        authDomain: "life-os-planner.firebaseapp.com",
+        projectId: "life-os-planner",
+        storageBucket: "life-os-planner.firebasestorage.app",
+        messagingSenderId: "929281569298",
+        appId: "1:929281569298:web:6e18393546f84d6af61ecb",
+        measurementId: "G-7KNWE4XKSD"
+    };
+
+    // 3. KHỞI ĐỘNG HỆ THỐNG
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    console.log(">> Firebase đã kết nối thành công!");
+
+    // --- 4. LOGIC AI THÔNG MINH (Đã tích hợp gửi dữ liệu) ---
+    
+    // Đưa biến ra ngoài để HTML dùng được
+    window.aiName = localStorage.getItem('LifeOS_AIName') || "JARVIS";
+    const widget = document.getElementById('draggable-ai');
+    const aiWindow = document.getElementById('ai-window');
+
+    // Cập nhật tên hiển thị
+    const nameDisplay = document.getElementById('ai-name-display');
+    if(nameDisplay) nameDisplay.innerText = window.aiName;
+
+    // Khôi phục vị trí cũ
+    const savedPos = JSON.parse(localStorage.getItem('LifeOS_AIPos'));
+    if(savedPos && widget) {
+        widget.style.left = savedPos.x;
+        widget.style.top = savedPos.y;
+        widget.style.bottom = 'auto';
+    }
+
+    // --- LOGIC KÉO THẢ (DRAG) ---
+    let isDragging = false;
+    let startX, startY, initialLeft, initialTop;
+    let hasMoved = false;
+
+    window.initDrag = function() {
+        const dragHandles = [document.querySelector('.ai-icon-trigger'), document.querySelector('.ai-header')];
+        dragHandles.forEach(handle => {
+            if(handle) {
+                handle.addEventListener('mousedown', dragStart);
+                handle.addEventListener('touchstart', dragStart, {passive: false});
+            }
+        });
+    }
+
+    function dragStart(e) {
+        if(e.target.classList.contains('fa-times') || e.target.closest('span[onclick]')) return;
+        isDragging = true; hasMoved = false;
+        
+        const clientX = e.clientX || e.touches[0].clientX;
+        const clientY = e.clientY || e.touches[0].clientY;
+        startX = clientX; startY = clientY;
+        
+        const rect = widget.getBoundingClientRect();
+        initialLeft = rect.left; initialTop = rect.top;
+
+        document.addEventListener('mousemove', dragMove);
+        document.addEventListener('mouseup', dragEnd);
+        document.addEventListener('touchmove', dragMove, {passive: false});
+        document.addEventListener('touchend', dragEnd);
+    }
+
+    function dragMove(e) {
+        if(!isDragging) return;
+        e.preventDefault();
+        const clientX = e.clientX || e.touches[0].clientX;
+        const clientY = e.clientY || e.touches[0].clientY;
+        const dx = clientX - startX; const dy = clientY - startY;
+
+        if(Math.abs(dx) > 5 || Math.abs(dy) > 5) hasMoved = true;
+        widget.style.left = `${initialLeft + dx}px`;
+        widget.style.top = `${initialTop + dy}px`;
+        widget.style.bottom = 'auto';
+    }
+
+    function dragEnd() {
+        isDragging = false;
+        document.removeEventListener('mousemove', dragMove);
+        document.removeEventListener('mouseup', dragEnd);
+        document.removeEventListener('touchmove', dragMove);
+        document.removeEventListener('touchend', dragEnd);
+        if(hasMoved) {
+            localStorage.setItem('LifeOS_AIPos', JSON.stringify({ x: widget.style.left, y: widget.style.top }));
+        }
+    }
+
+    // --- LOGIC CHAT ---
+    window.toggleAI = function() {
+        if(hasMoved) return;
+        if(aiWindow.style.display === 'flex') {
+            aiWindow.style.display = 'none';
+        } else {
+            aiWindow.style.display = 'flex';
+            const inp = document.getElementById('ai-input');
+            if(inp) inp.focus();
+        }
+    };
+
+    window.handleAIEnter = function(e) {
+        if(e.key === 'Enter') window.sendAIMessage();
+    };
+
+    window.renameAI = function() {
+        const newName = prompt("Đặt tên mới cho AI:", window.aiName);
+        if(newName) {
+            window.aiName = newName;
+            localStorage.setItem('LifeOS_AIName', window.aiName);
+            document.getElementById('ai-name-display').innerText = window.aiName;
+            addBotMsg(`Đã đổi tên thành công. ${window.aiName} nghe lệnh!`);
+        }
+    };
+
+    // --- GỬI DỮ LIỆU LÊN MÂY (PHẦN QUAN TRỌNG) ---
+    window.sendAIMessage = async function() {
+        const input = document.getElementById('ai-input');
+        const text = input.value.trim();
+        if(!text) return;
+
+        // 1. Hiện tin nhắn user
+        addUserMsg(text);
+        input.value = '';
+
+        // 2. Gửi lên Firebase (Database)
+        try {
+            const userInfo = navigator.userAgent; 
+            // Gửi dữ liệu vào bộ sưu tập "chat_logs"
+            await addDoc(collection(db, "chat_logs"), {
+                user_msg: text,
+                ai_name: window.aiName,
+                timestamp: serverTimestamp(), // Giờ hệ thống
+                device: userInfo,
+                screen: `${window.innerWidth}x${window.innerHeight}`
+            });
+            console.log(">> Đã lưu tin nhắn lên mây!");
+        } catch (e) {
+            console.error("Lỗi gửi dữ liệu:", e);
+        }
+
+        // 3. AI trả lời
+        document.getElementById('ai-typing').style.display = 'block';
+        setTimeout(() => {
+            document.getElementById('ai-typing').style.display = 'none';
+            processSmartResponse(text);
+            if(typeof AUDIO_SYS !== 'undefined' && AUDIO_SYS.sfx) AUDIO_SYS.sfx.type(); 
+        }, 600 + Math.random() * 1000);
+    };
+
+    function addUserMsg(text) {
+        const div = document.createElement('div'); div.className = 'msg user'; div.innerText = text;
+        const body = document.getElementById('ai-messages'); 
+        if(body) { body.appendChild(div); body.scrollTop = body.scrollHeight; }
+    }
+
+    function addBotMsg(text) {
+        const div = document.createElement('div'); div.className = 'msg bot'; div.innerHTML = text;
+        const body = document.getElementById('ai-messages');
+        if(body) { body.appendChild(div); body.scrollTop = body.scrollHeight; }
+    }
+
+    // --- KNOWLEDGE BASE (KHO KIẾN THỨC) ---
+    const KNOWLEDGE_BASE = [
+        { keywords: ['chào', 'hello', 'hi'], responses: ["Xin chào! Dữ liệu của bạn đang được... à nhầm, chào bạn! 😈", "Hello! Chúc một ngày tốt lành.", "Chào sếp!"] },
+        { keywords: ['mệt', 'chán', 'buồn'], responses: ["Cố lên! Nghỉ ngơi xíu đi.", "Uống nước chưa? Đứng dậy vươn vai nào."] },
+        { keywords: ['ai', 'tên gì'], responses: ["Tôi là AI chạy bằng cơm, nhưng dữ liệu thì lưu trên mây nhé!"] }
+    ];
+
+    function processSmartResponse(input) {
+        const text = input.toLowerCase();
+        
+        // Tính toán
+        if (/[0-9]/.test(text) && /[\+\-\*\/]/.test(text)) {
+            try {
+                const mathStr = text.replace(/[^0-9\+\-\*\/\.\(\)]/g, '');
+                if(mathStr) { addBotMsg(`🧮 Kết quả: <b>${eval(mathStr)}</b>`); return; }
+            } catch(e) {}
+        }
+        
+        // Trả lời theo từ khóa
+        for (let item of KNOWLEDGE_BASE) {
+            for (let key of item.keywords) {
+                if (text.includes(key)) {
+                    addBotMsg(item.responses[Math.floor(Math.random() * item.responses.length)]);
+                    return;
+                }
+            }
+        }
+        
+        // Trả lời mặc định
+        addBotMsg("Câu này thú vị đấy. Tôi đã ghi lại để học hỏi thêm!");
+    }
+
+    // Kích hoạt tính năng kéo thả
+    window.initDrag();
+
+</script>
+</body>
 </html>
