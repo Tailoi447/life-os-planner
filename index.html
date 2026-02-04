@@ -394,23 +394,38 @@
                     </div>
 
                 <div id="eisenhower-view">
-                    <div class="matrix-box matrix-urgent">
-                        <h4>GẤP & QUAN TRỌNG</h4>
-                        <div id="matrix-1" class="drop-zone" style="height:100%"></div>
-                    </div>
-                    <div class="matrix-box matrix-schedule">
-                        <h4>QUAN TRỌNG (Không Gấp)</h4>
-                        <div id="matrix-2" class="drop-zone" style="height:100%"></div>
-                    </div>
-                    <div class="matrix-box matrix-delegate">
-                        <h4>GẤP (Không Quan Trọng)</h4>
-                        <div id="matrix-3" class="drop-zone" style="height:100%"></div>
-                    </div>
-                    <div class="matrix-box matrix-delete">
-                        <h4>KHÔNG GẤP & KHÔNG QT</h4>
-                        <div id="matrix-4" class="drop-zone" style="height:100%"></div>
-                    </div>
-                </div>
+    <div class="matrix-box q1" id="quadrant-1" ondragover="allowDrop(event)" ondrop="dropToMatrix(event, 'q1')">
+        <div class="matrix-header">
+            <span><i class="fas fa-fire"></i> Gấp & Quan Trọng</span>
+            <i class="fas fa-ellipsis-h" style="opacity:0.5"></i>
+        </div>
+        <div class="matrix-content" id="list-q1"></div>
+    </div>
+
+    <div class="matrix-box q2" id="quadrant-2" ondragover="allowDrop(event)" ondrop="dropToMatrix(event, 'q2')">
+        <div class="matrix-header">
+            <span><i class="fas fa-calendar-alt"></i> Quan Trọng (Ko Gấp)</span>
+            <i class="fas fa-ellipsis-h" style="opacity:0.5"></i>
+        </div>
+        <div class="matrix-content" id="list-q2"></div>
+    </div>
+
+    <div class="matrix-box q3" id="quadrant-3" ondragover="allowDrop(event)" ondrop="dropToMatrix(event, 'q3')">
+        <div class="matrix-header">
+            <span><i class="fas fa-user-clock"></i> Gấp (Ko Quan Trọng)</span>
+            <i class="fas fa-ellipsis-h" style="opacity:0.5"></i>
+        </div>
+        <div class="matrix-content" id="list-q3"></div>
+    </div>
+
+    <div class="matrix-box q4" id="quadrant-4" ondragover="allowDrop(event)" ondrop="dropToMatrix(event, 'q4')">
+        <div class="matrix-header">
+            <span><i class="fas fa-trash-alt"></i> Không Gấp & Ko QT</span>
+            <i class="fas fa-ellipsis-h" style="opacity:0.5"></i>
+        </div>
+        <div class="matrix-content" id="list-q4"></div>
+    </div>
+</div>
 
                 <div class="section-header" style="margin-top: 30px">
                     <span class="section-title"><i class="fas fa-brain"></i> Brain Dump / Ghi Chú</span>
@@ -2331,7 +2346,7 @@ function setVolume(type, val) {
             btn.style.color = 'white';
             btn.style.fontWeight = 'bold';
             
-            btn.innerHTML = '<i class="fas fa-shopping-cart"></i> <b>Theme</b>';
+            btn.innerHTML = '<i class="fas fa-shopping-cart"></i> <b>Cửa Hàng (Theme/Nhạc)</b>';
             
             // Gán sự kiện mở shop
             btn.onclick = toggleShop;
@@ -2738,6 +2753,209 @@ function setVolume(type, val) {
         background: var(--accent) !important;
     }
 </style>
-</body>
-</html>
+<style>
+    /* --- MATRIX GOD MODE CSS --- */
+    
+    /* 1. Khung lưới 2x2 chuẩn chỉnh */
+    #eisenhower-view {
+        display: none; /* Mặc định ẩn */
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 15px;
+        height: 500px; /* Chiều cao cố định để scroll */
+        animation: zoomIn 0.3s ease;
+    }
 
+    @keyframes zoomIn { from { opacity:0; transform:scale(0.95); } to { opacity:1; transform:scale(1); } }
+
+    /* 2. Thiết kế từng ô Ma trận (Quadrant) */
+    .matrix-box {
+        position: relative;
+        border-radius: 12px;
+        padding: 40px 10px 10px 10px; /* Chừa chỗ cho Header */
+        display: flex;
+        flex-direction: column;
+        border: 1px solid rgba(255,255,255,0.05);
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+        transition: 0.3s;
+        overflow: hidden;
+    }
+    
+    .matrix-box:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+
+    /* Header của từng ô (Nằm chìm bên dưới) */
+    .matrix-header {
+        position: absolute; top: 0; left: 0; right: 0;
+        padding: 8px 15px;
+        font-size: 11px; font-weight: 800; letter-spacing: 1px;
+        text-transform: uppercase; color: rgba(255,255,255,0.8);
+        display: flex; justify-content: space-between; align-items: center;
+    }
+
+    /* Màu sắc định danh cho 4 ô */
+    .q1 { background: rgba(255, 118, 117, 0.1); border-color: rgba(255, 118, 117, 0.3); } /* Gấp & QT */
+    .q1 .matrix-header { background: rgba(255, 118, 117, 0.2); color: #ff7675; }
+    
+    .q2 { background: rgba(9, 132, 227, 0.1); border-color: rgba(9, 132, 227, 0.3); } /* QT - Ko Gấp */
+    .q2 .matrix-header { background: rgba(9, 132, 227, 0.2); color: #74b9ff; }
+    
+    .q3 { background: rgba(253, 203, 110, 0.1); border-color: rgba(253, 203, 110, 0.3); } /* Gấp - Ko QT */
+    .q3 .matrix-header { background: rgba(253, 203, 110, 0.2); color: #fdcb6e; }
+    
+    .q4 { background: rgba(178, 190, 195, 0.1); border-color: rgba(178, 190, 195, 0.3); } /* Rác */
+    .q4 .matrix-header { background: rgba(178, 190, 195, 0.2); color: #b2bec3; }
+
+    /* 3. Vùng thả (Drop Zone) */
+    .matrix-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 5px;
+    }
+    .matrix-content::-webkit-scrollbar { width: 4px; }
+    .matrix-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+    /* Hiệu ứng khi kéo task vào */
+    .matrix-box.drag-over {
+        border: 2px dashed var(--accent);
+        background: rgba(255,255,255,0.05);
+    }
+
+    /* 4. Biến Task thành Card khi ở trong Ma trận */
+    .matrix-mode .row {
+        background: var(--paper-bg);
+        border: 1px solid var(--border);
+        margin-bottom: 8px;
+        padding: 10px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        border-radius: 8px;
+    }
+    .matrix-mode .input-text { font-size: 12px; font-weight: 500; }
+
+    /* Mobile Fix cho Ma trận */
+    @media screen and (max-width: 768px) {
+        #eisenhower-view {
+            grid-template-columns: 1fr; /* 1 cột dọc */
+            height: auto;
+        }
+        .matrix-box { height: 200px; }
+    }
+</style>
+</body>
+<script>
+    /* =========================================
+       MATRIX GOD MODE CONTROLLER
+       ========================================= */
+    
+    // 1. Dữ liệu lưu vị trí task (Task nào ở ô nào)
+    let matrixMap = JSON.parse(localStorage.getItem('LifeOS_MatrixMap')) || {};
+
+    // 2. Hàm Bật/Tắt chế độ Ma trận
+    window.toggleMatrix = function() {
+        const todoList = document.getElementById('todo-list');
+        const matrixView = document.getElementById('eisenhower-view');
+        const btn = document.querySelector('button[onclick="toggleMatrix()"]');
+
+        if (!matrixView.style.display || matrixView.style.display === 'none') {
+            // -> CHUYỂN SANG MA TRẬN
+            todoList.style.display = 'none';
+            matrixView.style.display = 'grid';
+            document.body.classList.add('matrix-mode'); // Thêm class để CSS biết
+            
+            btn.innerHTML = '<i class="fas fa-list"></i> Về Danh Sách';
+            
+            distributeTasksToMatrix(); // Phân phối task vào các ô
+        } else {
+            // -> VỀ DANH SÁCH THƯỜNG
+            returnTasksToList(); // Trả task về danh sách cũ
+            
+            todoList.style.display = 'block';
+            matrixView.style.display = 'none';
+            document.body.classList.remove('matrix-mode');
+            
+            btn.innerHTML = '<i class="fas fa-th-large"></i> Chế độ Ma Trận';
+        }
+    };
+
+    // 3. Phân phối Task vào các ô (Dựa trên ID đã lưu)
+    function distributeTasksToMatrix() {
+        // Lấy tất cả các row trong Todo List
+        const rows = Array.from(document.querySelectorAll('#todo-list .row'));
+        
+        rows.forEach(row => {
+            const rowId = row.id; 
+            const savedQuad = matrixMap[rowId] || 'q2'; // Mặc định vào Q2 nếu chưa xếp
+            
+            // Tìm ô tương ứng
+            const targetBox = document.getElementById(`list-${savedQuad}`);
+            if(targetBox) {
+                targetBox.appendChild(row);
+            }
+        });
+    }
+
+    // 4. Trả Task về danh sách chính khi tắt Ma trận
+    function returnTasksToList() {
+        const todoList = document.getElementById('todo-list');
+        // Gom tất cả row đang nằm rải rác trong 4 ô
+        const rows = document.querySelectorAll('.matrix-content .row');
+        
+        // Sắp xếp lại theo ID (để thứ tự không bị lộn xộn)
+        const sortedRows = Array.from(rows).sort((a, b) => {
+            // ID dạng 'todo_row_0', 'todo_row_1' -> lấy số cuối để sort
+            const numA = parseInt(a.id.split('_').pop());
+            const numB = parseInt(b.id.split('_').pop());
+            return numA - numB;
+        });
+
+        sortedRows.forEach(row => todoList.appendChild(row));
+    }
+
+    // 5. LOGIC KÉO THẢ NÂNG CAO (DRAG & DROP)
+    
+    function allowDrop(ev) {
+        ev.preventDefault();
+        // Hiệu ứng Visual khi kéo vào
+        ev.currentTarget.classList.add('drag-over');
+    }
+
+    // Xử lý khi thả task vào ô
+    function dropToMatrix(ev, quadrantId) {
+        ev.preventDefault();
+        // Xóa hiệu ứng drag-over
+        document.querySelectorAll('.matrix-box').forEach(b => b.classList.remove('drag-over'));
+
+        // Lấy ID của task đang kéo (từ biến toàn cục dragSrcEl của code cũ)
+        if(!dragSrcEl) return;
+        
+        const rowId = dragSrcEl.id;
+        
+        // Chỉ xử lý nếu là Todo Row (không phải Schedule hay Prio)
+        if(rowId.includes('todo_row')) {
+            // 1. Di chuyển DOM sang ô mới
+            const targetList = document.getElementById(`list-${quadrantId}`);
+            targetList.appendChild(dragSrcEl);
+            
+            // 2. Lưu trạng thái vào Memory & LocalStorage
+            matrixMap[rowId] = quadrantId;
+            localStorage.setItem('LifeOS_MatrixMap', JSON.stringify(matrixMap));
+            
+            // 3. Hiệu ứng âm thanh & Toast
+            if(typeof AUDIO_SYS !== 'undefined') AUDIO_SYS.sfx.click();
+            
+            let qName = "";
+            if(quadrantId == 'q1') qName = "GẤP & QUAN TRỌNG";
+            if(quadrantId == 'q2') qName = "QUAN TRỌNG (Lên lịch)";
+            if(quadrantId == 'q3') qName = "GIAO VIỆC";
+            if(quadrantId == 'q4') qName = "XÓA BỎ / RÁC";
+            
+            showToast(`Đã chuyển task sang: ${qName}`);
+        }
+    }
+
+    // Fix lỗi: Khi kéo ra ngoài ô thì mất hiệu ứng
+    document.querySelectorAll('.matrix-box').forEach(box => {
+        box.addEventListener('dragleave', () => box.classList.remove('drag-over'));
+    });
+
+</script>
+</html>
