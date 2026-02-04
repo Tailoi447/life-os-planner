@@ -3056,14 +3056,14 @@ function setVolume(type, val) {
 
 </script>
 <script type="module">
-    // 1. NHẬP KHẨU CÔNG CỤ TỪ GOOGLE (Dùng link CDN để chạy trên web thường)
+    // 1. NHẬP KHẨU CÔNG CỤ TỪ GOOGLE
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, serverTimestamp } 
+    import { getFirestore, collection, addDoc, getDocs, serverTimestamp } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // 2. CẤU HÌNH KẾT NỐI (Thông tin từ ảnh của bạn)
+    // ▼▼▼ DÁN LẠI MÃ CONFIG FIREBASE CỦA BẠN VÀO ĐÂY ▼▼▼
     const firebaseConfig = {
-        apiKey: "AIzaSyBEl0yxa_w_Wh4PJXfc1ZIIvJT-LhvlZfU",
+        apiKey: "AIzaSyBEi0Yxa_w_Wh4PJXfc1ZIivJT-LhvlZfU",
         authDomain: "life-os-planner.firebaseapp.com",
         projectId: "life-os-planner",
         storageBucket: "life-os-planner.firebasestorage.app",
@@ -3071,24 +3071,41 @@ function setVolume(type, val) {
         appId: "1:929281569298:web:6e18393546f84d6af61ecb",
         measurementId: "G-7KNWE4XKSD"
     };
+    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
-    // 3. KHỞI ĐỘNG HỆ THỐNG
+    // Khởi động hệ thống
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    console.log(">> Firebase đã kết nối thành công!");
+    let cloudKnowledge = []; // Bộ nhớ tạm của AI
 
-    // --- 4. LOGIC AI THÔNG MINH (Đã tích hợp gửi dữ liệu) ---
-    
-    // Đưa biến ra ngoài để HTML dùng được
+    console.log(">> Đang kết nối não bộ...");
+
+    // --- HÀM TẢI KIẾN THỨC TỪ MÂY ---
+    async function downloadBrain() {
+        try {
+            // Lấy dữ liệu từ bộ sưu tập "knowledge" trên Firebase
+            const querySnapshot = await getDocs(collection(db, "knowledge"));
+            cloudKnowledge = [];
+            querySnapshot.forEach((doc) => {
+                cloudKnowledge.push(doc.data());
+            });
+            console.log(`>> Đã tải xong ${cloudKnowledge.length} kiến thức mới!`);
+        } catch (e) {
+            console.error("Lỗi tải não bộ:", e);
+        }
+    }
+    // Tải kiến thức ngay khi bật web
+    downloadBrain();
+
+
+    // --- CÁC LOGIC CŨ (Giao diện & Kéo thả) ---
     window.aiName = localStorage.getItem('LifeOS_AIName') || "JARVIS";
     const widget = document.getElementById('draggable-ai');
     const aiWindow = document.getElementById('ai-window');
-
-    // Cập nhật tên hiển thị
     const nameDisplay = document.getElementById('ai-name-display');
     if(nameDisplay) nameDisplay.innerText = window.aiName;
 
-    // Khôi phục vị trí cũ
+    // Load vị trí
     const savedPos = JSON.parse(localStorage.getItem('LifeOS_AIPos'));
     if(savedPos && widget) {
         widget.style.left = savedPos.x;
@@ -3096,7 +3113,7 @@ function setVolume(type, val) {
         widget.style.bottom = 'auto';
     }
 
-    // --- LOGIC KÉO THẢ (DRAG) ---
+    // Logic Kéo thả
     let isDragging = false;
     let startX, startY, initialLeft, initialTop;
     let hasMoved = false;
@@ -3114,14 +3131,11 @@ function setVolume(type, val) {
     function dragStart(e) {
         if(e.target.classList.contains('fa-times') || e.target.closest('span[onclick]')) return;
         isDragging = true; hasMoved = false;
-        
         const clientX = e.clientX || e.touches[0].clientX;
         const clientY = e.clientY || e.touches[0].clientY;
         startX = clientX; startY = clientY;
-        
         const rect = widget.getBoundingClientRect();
         initialLeft = rect.left; initialTop = rect.top;
-
         document.addEventListener('mousemove', dragMove);
         document.addEventListener('mouseup', dragEnd);
         document.addEventListener('touchmove', dragMove, {passive: false});
@@ -3134,7 +3148,6 @@ function setVolume(type, val) {
         const clientX = e.clientX || e.touches[0].clientX;
         const clientY = e.clientY || e.touches[0].clientY;
         const dx = clientX - startX; const dy = clientY - startY;
-
         if(Math.abs(dx) > 5 || Math.abs(dy) > 5) hasMoved = true;
         widget.style.left = `${initialLeft + dx}px`;
         widget.style.top = `${initialTop + dy}px`;
@@ -3147,27 +3160,17 @@ function setVolume(type, val) {
         document.removeEventListener('mouseup', dragEnd);
         document.removeEventListener('touchmove', dragMove);
         document.removeEventListener('touchend', dragEnd);
-        if(hasMoved) {
-            localStorage.setItem('LifeOS_AIPos', JSON.stringify({ x: widget.style.left, y: widget.style.top }));
-        }
+        if(hasMoved) localStorage.setItem('LifeOS_AIPos', JSON.stringify({ x: widget.style.left, y: widget.style.top }));
     }
 
-    // --- LOGIC CHAT ---
     window.toggleAI = function() {
         if(hasMoved) return;
-        if(aiWindow.style.display === 'flex') {
-            aiWindow.style.display = 'none';
-        } else {
-            aiWindow.style.display = 'flex';
-            const inp = document.getElementById('ai-input');
-            if(inp) inp.focus();
-        }
+        if(aiWindow.style.display === 'flex') aiWindow.style.display = 'none';
+        else { aiWindow.style.display = 'flex'; document.getElementById('ai-input')?.focus(); }
     };
 
-    window.handleAIEnter = function(e) {
-        if(e.key === 'Enter') window.sendAIMessage();
-    };
-
+    window.handleAIEnter = function(e) { if(e.key === 'Enter') window.sendAIMessage(); };
+    
     window.renameAI = function() {
         const newName = prompt("Đặt tên mới cho AI:", window.aiName);
         if(newName) {
@@ -3178,39 +3181,31 @@ function setVolume(type, val) {
         }
     };
 
-    // --- GỬI DỮ LIỆU LÊN MÂY (PHẦN QUAN TRỌNG) ---
+    // --- LOGIC GỬI & XỬ LÝ THÔNG MINH ---
     window.sendAIMessage = async function() {
         const input = document.getElementById('ai-input');
         const text = input.value.trim();
         if(!text) return;
 
-        // 1. Hiện tin nhắn user
         addUserMsg(text);
         input.value = '';
 
-        // 2. Gửi lên Firebase (Database)
+        // 1. Gửi tin nhắn lên Firebase (Thu thập dữ liệu)
         try {
-            const userInfo = navigator.userAgent; 
-            // Gửi dữ liệu vào bộ sưu tập "chat_logs"
             await addDoc(collection(db, "chat_logs"), {
-                user_msg: text,
-                ai_name: window.aiName,
-                timestamp: serverTimestamp(), // Giờ hệ thống
-                device: userInfo,
-                screen: `${window.innerWidth}x${window.innerHeight}`
+                msg: text,
+                user: navigator.userAgent,
+                time: serverTimestamp()
             });
-            console.log(">> Đã lưu tin nhắn lên mây!");
-        } catch (e) {
-            console.error("Lỗi gửi dữ liệu:", e);
-        }
+        } catch(e) {}
 
-        // 3. AI trả lời
+        // 2. AI Suy nghĩ
         document.getElementById('ai-typing').style.display = 'block';
         setTimeout(() => {
             document.getElementById('ai-typing').style.display = 'none';
             processSmartResponse(text);
             if(typeof AUDIO_SYS !== 'undefined' && AUDIO_SYS.sfx) AUDIO_SYS.sfx.type(); 
-        }, 600 + Math.random() * 1000);
+        }, 600 + Math.random() * 800);
     };
 
     function addUserMsg(text) {
@@ -3225,41 +3220,56 @@ function setVolume(type, val) {
         if(body) { body.appendChild(div); body.scrollTop = body.scrollHeight; }
     }
 
-    // --- KNOWLEDGE BASE (KHO KIẾN THỨC) ---
-    const KNOWLEDGE_BASE = [
-        { keywords: ['chào', 'hello', 'hi'], responses: ["Xin chào! Dữ liệu của bạn đang được... à nhầm, chào bạn! 😈", "Hello! Chúc một ngày tốt lành.", "Chào sếp!"] },
-        { keywords: ['mệt', 'chán', 'buồn'], responses: ["Cố lên! Nghỉ ngơi xíu đi.", "Uống nước chưa? Đứng dậy vươn vai nào."] },
-        { keywords: ['ai', 'tên gì'], responses: ["Tôi là AI chạy bằng cơm, nhưng dữ liệu thì lưu trên mây nhé!"] }
-    ];
-
-    function processSmartResponse(input) {
+    // --- BỘ NÃO HỢP NHẤT (CŨ + MỚI) ---
+    async function processSmartResponse(input) {
         const text = input.toLowerCase();
-        
-        // Tính toán
+
+        // 1. Kiểm tra tính toán (Math)
         if (/[0-9]/.test(text) && /[\+\-\*\/]/.test(text)) {
             try {
                 const mathStr = text.replace(/[^0-9\+\-\*\/\.\(\)]/g, '');
                 if(mathStr) { addBotMsg(`🧮 Kết quả: <b>${eval(mathStr)}</b>`); return; }
             } catch(e) {}
         }
-        
-        // Trả lời theo từ khóa
-        for (let item of KNOWLEDGE_BASE) {
-            for (let key of item.keywords) {
-                if (text.includes(key)) {
-                    addBotMsg(item.responses[Math.floor(Math.random() * item.responses.length)]);
+
+        // 2. Kiểm tra bộ não đám mây (Cloud Knowledge)
+        // Tìm xem có từ khóa nào khớp không
+        for (let item of cloudKnowledge) {
+            // item.keys là chuỗi các từ khóa, ví dụ: "giá, tiền, bao nhiêu"
+            const keys = item.keys.split(',').map(k => k.trim().toLowerCase());
+            for (let k of keys) {
+                if (text.includes(k) && k.length > 0) {
+                    addBotMsg(item.answer);
                     return;
                 }
             }
         }
-        
-        // Trả lời mặc định
-        addBotMsg("Câu này thú vị đấy. Tôi đã ghi lại để học hỏi thêm!");
+
+        // 3. Kiến thức cơ bản (Hardcode)
+        const BASIC_KNOWLEDGE = [
+            { k: ['chào', 'hi', 'hello'], a: "Xin chào! Mình là AI của bạn đây." },
+            { k: ['tên gì', 'là ai'], a: `Mình là ${window.aiName}, trợ lý ảo chạy trên nền web.` },
+            { k: ['mệt', 'buồn'], a: "Cố lên nhé! Nghỉ ngơi một chút rồi làm tiếp." }
+        ];
+
+        for (let item of BASIC_KNOWLEDGE) {
+            for (let k of item.k) {
+                if (text.includes(k)) { addBotMsg(item.a); return; }
+            }
+        }
+
+        // 4. Nếu không biết -> Ghi lại câu hỏi lạ vào Firebase để chủ nhân dạy
+        try {
+            await addDoc(collection(db, "missing_data"), {
+                question: text,
+                time: serverTimestamp()
+            });
+        } catch(e) {}
+
+        addBotMsg("Câu này mình chưa được học. Mình đã ghi lại để chủ nhân dạy thêm!");
     }
 
-    // Kích hoạt tính năng kéo thả
     window.initDrag();
-
 </script>
 </body>
 </html>
