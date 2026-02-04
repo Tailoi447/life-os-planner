@@ -3064,13 +3064,14 @@ function setVolume(type, val) {
     // ▼▼▼ DÁN LẠI MÃ CONFIG FIREBASE CỦA BẠN VÀO ĐÂY ▼▼▼
     const firebaseConfig = {
         apiKey: "AIzaSyBEi0Yxa_w_Wh4PJXfc1ZIivJT-LhvlZfU",
-        authDomain: "life-os-planner.firebaseapp.com",
-        projectId: "life-os-planner",
-        storageBucket: "life-os-planner.firebasestorage.app",
-        messagingSenderId: "929281569298",
-        appId: "1:929281569298:web:6e18393546f84d6af61ecb",
-        measurementId: "G-7KNWE4XKSD"
+  authDomain: "life-os-planner.firebaseapp.com",
+  projectId: "life-os-planner",
+  storageBucket: "life-os-planner.firebasestorage.app",
+  messagingSenderId: "929281569298",
+  appId: "1:929281569298:web:6e18393546f84d6af61ecb",
+  measurementId: "G-7KNWE4XKSD"
     };
+
     // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
     // Khởi động hệ thống
@@ -3270,7 +3271,48 @@ function setVolume(type, val) {
     }
 
     window.initDrag();
+    const GROQ_API_KEY = "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";
+
+async function askGroq(userInput) {
+    try {
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${GROQ_API_KEY}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                // Model Llama 3.3 70b cực thông minh và phản hồi nhanh
+                model: "llama-3.3-70b-versatile", 
+                messages: [
+                    { role: "system", content: "Bạn là trợ lý ảo Life OS thông minh." },
+                    { role: "user", content: userInput }
+                ]
+            })
+        });
+        const data = await response.json();
+        return data.choices[0].message.content;
+    } catch (error) {
+        console.error("Lỗi Groq:", error);
+        return "Tốc độ xử lý đang gặp vấn đề, thử lại sau nhé!";
+    }
+}
+
+// Cập nhật hàm gửi tin nhắn
+window.sendAIMessage = async function() {
+    const input = document.getElementById('ai-input');
+    const text = input.value.trim();
+    if(!text) return;
+
+    addUserMsg(text);
+    input.value = '';
+    document.getElementById('ai-typing').style.display = 'block';
+
+    const aiResponse = await askGroq(text); // Gọi hàm Groq mới
+    
+    document.getElementById('ai-typing').style.display = 'none';
+    addBotMsg(aiResponse);
+};
 </script>
 </body>
 </html>
-
