@@ -473,7 +473,26 @@
             </button>
         </div>
     </div>
+    <div class="widget-card pomodoro-widget">
+    <div class="widget-header">
+        <h3>Focus Mode 🍅</h3>
+        <span id="pomo-status">Sẵn sàng</span>
+    </div>
+    
+    <div class="timer-display">
+        <span id="minutes">25</span>:<span id="seconds">00</span>
+    </div>
 
+    <div class="timer-controls">
+        <button id="btn-start">Bắt đầu</button>
+        <button id="btn-reset">Đặt lại</button>
+    </div>
+
+    <div class="mode-switch">
+        <button class="mode-btn active" data-mode="focus">Focus</button>
+        <button class="mode-btn" data-mode="shortBreak">Nghỉ ngắn</button>
+    </div>
+</div>
     <script>
         /* ============================
            LIFE OS V3.0 CORE LOGIC
@@ -3314,5 +3333,7 @@ window.sendAIMessage = async function() {
     addBotMsg(aiResponse);
 };
 </script>
+<script type="module" src="./js/main.js"></script>
 </body>
 </html>
+
